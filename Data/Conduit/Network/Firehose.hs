@@ -38,5 +38,6 @@ firehoseConduit :: (Monad m, MonadIO m)
                 -> IO (Conduit a m a)
 firehoseConduit port buffersize getFilter serialize = do
     fh <- atomically newFirehose
-    void $ forkIO (run port (firehoseApp buffersize getFilter serialize fh))
+    let settings = defaultSettings { settingsPort = port, settingsTimeout = 3600 }
+    void $ forkIO (runSettings settings (firehoseApp buffersize getFilter serialize fh))
     return (CL.mapM (\m -> liftIO (atomically (writeEvent fh m)) >> return m))
