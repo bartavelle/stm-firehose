@@ -4,7 +4,7 @@
 name:                stm-firehose
 version:             0.1.2
 synopsis:            Conduits and STM operations for fire hoses.
-description:         A fire hose is a component in a message passing system that let clients tap into the message flow. This module provides low level (built on STM channels) and high level (based on conduits) building blocks.
+description:         A fire hose is a component in a message passing system that let clients tap into the message flow. This module provides low level (built on STM channels) and high level (based on conduits) building blocks. It should work with a fixed amount of memory, and has non blocking write operations.
 license:             BSD3
 license-file:        LICENSE
 author:              Simon Marechal
@@ -14,6 +14,11 @@ category:            Network
 build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
+
+source-repository head
+  type: git
+  location: git://github.com/bartavelle/stm-firehose.git
+
 
 library
   exposed-modules:     Control.Concurrent.STM.Firehose, Data.Conduit.Network.Firehose
