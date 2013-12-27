@@ -1,3 +1,14 @@
+{-|
+A subscription based messaging system, with non-blocking bounded write.
+
+> fh <- atomically newFirehose
+> -- the following line will not block, even though nobody subscribed
+> atomically (mapM_ (writeEvent fh) [1..100])
+> -- let's subscribe a single client
+> sub <- atomically (subscribe 10 fh)
+> forkIO (forever (atomically (readEvent fh) >>= print))
+> writeEvent fh 1
+-}
 module Control.Concurrent.STM.Firehose (Firehose, Subscription, newFirehose, writeEvent, subscribe, unsubscribe, readEvent, getQueue) where
 
 import Control.Concurrent.STM
@@ -27,7 +38,8 @@ subscribe len f@(Firehose lst) = do
 
 -- | Unsubscribe from the fire hose. Subsequent calls to 'readEvent' will
 -- return 'Nothing'. This runs in O(n), where n is the current number of
--- subscriptions.
+-- subscriptions. Please contact the maintainer if you need better
+-- performance.
 unsubscribe :: Subscription a -> STM ()
 unsubscribe (Subscription q (Firehose lst)) = do
     closeTBMQueue q
