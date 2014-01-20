@@ -6,8 +6,8 @@ A subscription based messaging system, with non-blocking bounded write.
 > atomically (mapM_ (writeEvent fh) [1..100])
 > -- let's subscribe a single client
 > sub <- atomically (subscribe 10 fh)
-> forkIO (forever (atomically (readEvent fh) >>= print))
-> writeEvent fh 1
+> forkIO (forever (atomically (readEvent sub) >>= print))
+> atomically $ writeEvent fh 1
 -}
 module Control.Concurrent.STM.Firehose (Firehose, Subscription, newFirehose, writeEvent, subscribe, unsubscribe, readEvent, getQueue) where
 
