@@ -12,13 +12,14 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.STM
 import Control.Concurrent.STM.Firehose
 import Data.Conduit.TQueue
+import Network.Wai.Conduit
 import qualified Data.Conduit.List as CL
 
 import Network.HTTP.Types
-import Network.Wai
 import Data.Conduit
 import Blaze.ByteString.Builder
 import Network.Wai.Handler.Warp
+import Data.Acquire
 
 import Control.Monad (void)
 import Control.Monad.IO.Class
@@ -36,11 +37,11 @@ firehoseApp :: Int -- ^ Buffer size for the fire hose threads
             -> (a -> Builder) -- ^ The serialization function
             -> Firehose a
             -> Application
-firehoseApp buffsize filtering serialize fh req = responseSourceBracket (atomically (subscribe buffsize fh)) (atomically . unsubscribe) runFirehose
+firehoseApp buffsize filtering serialize fh req hdl = with subscription runFirehose
     where
+        subscription = mkAcquire (atomically (subscribe buffsize fh)) (atomically . unsubscribe)
         filtering' = filtering req
-        -- Subscription a -> IO (Status, ResponseHeaders, Source IO (Flush Builder))
-        runFirehose sub = return (status200, [], sourceTBMQueue (getQueue sub) $= CL.filter filtering' $= CL.concatMap (\e -> [Chunk (serialize e), Flush]) )
+        runFirehose sub = hdl $ responseSource status200 [] (sourceTBMQueue (getQueue sub) $= CL.filter filtering' $= CL.concatMap (\e -> [Chunk (serialize e), Flush]) )
 
 {-| A fire hose conduit creator, that can be inserted in your conduits as
 firehose entry points. Will run Warp on the specified port. Please not
@@ -54,6 +55,6 @@ firehoseConduit :: (Monad m, MonadIO m)
                 -> IO (Conduit a m a)
 firehoseConduit port buffersize getFilter serialize = do
     fh <- atomically newFirehose
-    let settings = defaultSettings { settingsPort = port, settingsTimeout = 3600 }
+    let settings = setPort port $ setTimeout 3600 defaultSettings
     void $ forkIO (runSettings settings (firehoseApp buffersize getFilter serialize fh))
     return (CL.mapM (\m -> liftIO (atomically (writeEvent fh m)) >> return m))

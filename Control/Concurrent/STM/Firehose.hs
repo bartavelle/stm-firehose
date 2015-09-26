@@ -25,7 +25,7 @@ newFirehose = Firehose `fmap` newTVar []
 
 -- | Sends a piece of data in the fire hose.
 writeEvent :: Firehose a -> a -> STM ()
-writeEvent (Firehose lst) element = readTVar lst >>= mapM_ (flip tryWriteTBMQueue element)
+writeEvent (Firehose lst) element = readTVar lst >>= mapM_ (`tryWriteTBMQueue` element)
 
 -- | Get a subscription from the fire hose, that will be used to
 -- read events.
